@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="helloWorld" default="package" basedir=".">
+	
+  <property file="build.properties"/>
+  
+  <path id="app.libraries.path">
+		<fileset dir="lib/">
+			<include name="*.jar"/>
+		</fileset>
+  </path>
+
+  <!-- ====================================================================== -->
+  <!-- Cleaning up target                                                     -->
+  <!-- ====================================================================== -->
+
+  <target name="clean" description="Clean the output directory">
+    <delete dir="${build.dir}"/>
+  </target>
+
+  <!-- ====================================================================== -->
+  <!-- Compilation target                                                     -->
+  <!-- ====================================================================== 
+
+  <pathconvert property="classpathProp" refid="claimmonitor.libraries.path"/>
+  <echo>Classpath is ${classpathProp}</echo>-->
+  <target name="compile" depends="clean" description="Compile the code">
+    <mkdir dir="${build.outputDir}"/>
+    <javac destdir="${build.outputDir}" 
+           nowarn="true" 
+           debug="true" 
+           optimize="false" 
+           deprecation="true" 
+           verbose="false" 
+           fork="false">
+      <src>
+        <pathelement location="${build.srcDir}"/>
+      </src>
+      <classpath refid="app.libraries.path"/>
+    </javac>
+    <copy todir="${build.outputDir}">
+      <fileset dir="${build.resourceDir}"/>
+    </copy>
+  </target>
+
+  <target name="package" depends="compile" description="Package the application">
+    <mkdir dir="${build.war.dir}"/>	
+    <war destfile="${build.war.dir}/${build.war.name}.war" 
+         compress="true" 
+         webxml="${build.webapp}/WEB-INF/web.xml">
+      <lib dir="${build.lib}"/>
+      <classes dir="${build.outputDir}"/>
+      <fileset dir="${build.webapp}" excludes="WEB-INF/web.xml"/>
+    </war>
+  </target>
+
+  <target name="war" depends="package" description="Builds the war for the application"/>
+ 
+  <target name="deploy" depends="undeploy" description="Copy To Tomcat application">
+	<echo>Deploying Application</echo>
+	<deploy 
+			url="${appserver.url}"
+			username="${appserver.username}"
+			password="${appserver.password}"
+			path="/${application.context}"
+			war="${build.war.dir}/${build.war.name}.war"
+		/>
+	<echo>Application Deployed!</echo>
+  </target>
+  <target name="undeploy" depends="appserver-start" description="undeploy from tomcat">
+	<echo>Undeploying Application</echo>
+	<undeploy 
+			failonerror="no"
+			url="${appserver.url}"
+			username="${appserver.username}"
+			password="${appserver.password}"
+			path="/${application.context}"
+		/>
+	<echo>Application Undeployed!</echo>
+  </target>
+  <target name="appserver-start" depends="appserver-stop">
+	<echo>Starting Server</echo>
+    <java classname="org.apache.catalina.startup.Bootstrap" fork="true" spawn="true">
+    	<classpath refid="catalina-ant-classpath" />
+        <jvmarg value="-Dcatalina.home=${appserver.home}"/>
+    </java>
+	<echo>Server Successfully Started!</echo>
+  </target>
+
+  <target name="appserver-stop">
+	<echo>Stopping Server</echo>
+    <java classname="org.apache.catalina.startup.Bootstrap" fork="true">
+    <classpath refid="catalina-ant-classpath" />
+        <jvmarg value="-Dcatalina.home=${appserver.home}"/>
+        <arg line="stop"/>
+    </java>
+	<echo>Server Shutdown Complete!</echo>
+  </target>
+</project>
